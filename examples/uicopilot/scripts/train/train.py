@@ -8,8 +8,8 @@ Image.MAX_IMAGE_PIXELS = None
 from transformers import AutoProcessor,Pix2StructForConditionalGeneration,TrainingArguments,AddedToken,HfArgumentParser,Trainer
 from transformers.optimization import Adafactor,get_cosine_schedule_with_warmup,get_constant_schedule_with_warmup
 from my_dataset import UICoderDataset,UICoderCollater
-from vars import *
-from utils import smart_tokenizer_and_embedding_resize
+from .vars import *
+from uicopilot.utils import smart_tokenizer_and_embedding_resize
 from dataclasses import dataclass, field, asdict
 import wandb
 import multiprocessing

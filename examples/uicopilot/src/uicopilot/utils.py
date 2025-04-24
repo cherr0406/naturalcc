@@ -6,8 +6,6 @@ from tokenizers import AddedToken
 from transformers.modeling_utils import PreTrainedModel
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 
-from .vars import precision
-
 
 def move_to_device(data,device):
     if isinstance(data, (list,tuple)):
@@ -19,7 +17,7 @@ def move_to_device(data,device):
     else:
         return data
     
-def BboxTree2Html(node,style=False,size=(1,1)):
+def BboxTree2Html(node,style=False,size=(1,1),precision=3):
     if isinstance(node, str):
         return node
     elif not node:

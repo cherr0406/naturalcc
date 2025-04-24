@@ -4,7 +4,7 @@ import torch
 from transformers.models.pix2struct import Pix2StructForConditionalGeneration, Pix2StructProcessor
 
 from .agents import AgentI2C, AgentOptimize
-from .scripts.train.utils import BboxTree2Html, BboxTree2StyleList, Html2BboxTree, add_special_tokens, move_to_device
+from .utils import BboxTree2Html, BboxTree2StyleList, Html2BboxTree, add_special_tokens, move_to_device
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class SimpleInference:
             encoding = self.processor(images=[image], text=[""], return_tensors="pt", images_kwargs={"max_patches": 1024})
             item = {
                 "decoder_input_ids": decoder_input_ids,
-                "flattened_patches": encoding["flattened_patches"].half() if self.device == "cuda" else encoding["flattened_patches"],
+                "flattened_patches": encoding["flattened_patches"].half() if self.device == "cuda" else encoding["flattened_patches"],  # type: ignore
                 "attention_mask": encoding["attention_mask"],
             }
             item = move_to_device(item, self.device)
@@ -119,14 +119,18 @@ class SimpleInference:
         return html, html2, imgs
 
 
-# def __main__():
-#     output_dir = "./output"
-#     image = Image.open("test.png")
-#
-#     inference = SimpleInference()
-#     _, html, imgs = inference.gen(image)
-#     os.makedirs(output_dir, exist_ok=True)
-#     with open(f"{output_dir}/index.html", "w") as f:
-#         f.write(html)
-#     for idx, img in enumerate(imgs):
-#         img.save(f"{idx}.png")
+if __name__ == "__main__":
+    import os
+
+    from PIL import Image
+
+    output_dir = "./output"
+    image = Image.open("test.png")
+
+    inference = SimpleInference()
+    _, html, imgs = inference.gen(image)
+    os.makedirs(output_dir, exist_ok=True)
+    with open(f"{output_dir}/index.html", "w") as f:
+        f.write(html)
+    for idx, img in enumerate(imgs):
+        img.save(f"{idx}.png")

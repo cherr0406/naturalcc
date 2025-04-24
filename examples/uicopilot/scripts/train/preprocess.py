@@ -1,6 +1,6 @@
 import sys, os
 sys.path.append(os.path.abspath('.'))
-from utils import smart_tokenizer_and_embedding_resize
+from uicopilot.utils import smart_tokenizer_and_embedding_resize
 from datasets import load_dataset, load_from_disk
 from scripts.train.my_dataset import UICoderDataset
 from transformers import AutoProcessor, AddedToken, Pix2StructForConditionalGeneration, Pix2StructProcessor,Pix2StructImageProcessor
