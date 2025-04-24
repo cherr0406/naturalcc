@@ -1,8 +1,13 @@
 import re
-from transformers import PreTrainedModel, AutoTokenizer, AddedToken
 from typing import Dict
+
 import torch
-from .vars import *
+from tokenizers import AddedToken
+from transformers.modeling_utils import PreTrainedModel
+from transformers.models.auto.tokenization_auto import AutoTokenizer
+
+from .vars import precision
+
 
 def move_to_device(data,device):
     if isinstance(data, (list,tuple)):
@@ -28,7 +33,7 @@ def BboxTree2Html(node,style=False,size=(1,1)):
             tree = f"<{dom_type} style='{node['style'] if 'style' in node else ''}' src='{childDoms[0] if len(childDoms) else ''}'></{dom_type}>"
         else:
             tree = f"<{dom_type} style='{node['style'] if 'style' in node else ''}'>{''.join(childDoms)}</{dom_type}>"
-    else:  
+    else:
         tree = f"<{dom_type} bbox=[{round(node['bbox'][0]/size[0],precision)},{round(node['bbox'][1]/size[1],precision)},{round(node['bbox'][2]/size[0],precision)},{round(node['bbox'][3]/size[1],precision)}]>{''.join(childDoms)}</{dom_type}>"
     return tree
 
@@ -45,7 +50,7 @@ def BboxTree2StyleList(node, index='', skip_leaf=True):
             'bbox': x['bbox'],
             'style': x['style'].strip() if ('style' in x and x['style']) else ''
         }, node['children']))
-    }] 
+    }]
     for idx,cnode in enumerate(node['children']):
         bsList += BboxTree2StyleList(cnode, f"{index}{'-' if index else ''}{idx}", skip_leaf)
     return bsList
