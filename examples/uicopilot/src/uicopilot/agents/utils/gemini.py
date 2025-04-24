@@ -1,3 +1,4 @@
+import logging
 import sys
 sys.path.append("/data02/users/lz/code/UICoder")
 import io
@@ -5,6 +6,9 @@ import base64
 from PIL import Image
 import google.generativeai as genai
 import os
+
+logger = logging.getLogger(__name__)
+
 API_KEY_GEMINI = os.getenv("API_KEY_GEMINI")
 # 提取 HTML 内容的示例代码
 def extract_html_from_response(response):
@@ -17,7 +21,7 @@ def extract_html_from_response(response):
             html_content = html_content[:-3]
         return html_content.strip()
     except Exception as e:
-        print("Error extracting HTML:", e)
+        logger.debug("Error extracting HTML:", e)
         return None
 
 genai.configure(api_key=API_KEY_GEMINI)
@@ -35,7 +39,7 @@ def gemini(prompt, image, text):
         # return html_content
         return response
     except Exception as e:
-        print("Error during content generation:", e)
+        logger.debug("Error during content generation:", e)
 
 # 运行测试函数
 prompt = """
@@ -68,4 +72,4 @@ test_image = Image.new("RGB", (100, 100), color="blue")  # 创建一个蓝色测
 text = "Turn this into a single html file using tailwind."
 
 response = gemini(prompt, test_image, text)
-print(response)
+logger.debug(response)

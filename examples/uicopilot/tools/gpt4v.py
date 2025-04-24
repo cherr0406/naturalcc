@@ -1,3 +1,4 @@
+import logging
 import requests
 import base64
 import time
@@ -5,6 +6,7 @@ import io
 import base64
 from PIL import Image
 
+logger = logging.getLogger(__name__)
 
 GPT4V_CONFIGS = [
     [
@@ -138,4 +140,4 @@ if __name__ == "__main__":
         args.gpt4v_key,
         args.compress_rate,
     )
-    print(content)
+    logger.debug(content)

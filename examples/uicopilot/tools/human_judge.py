@@ -1,3 +1,4 @@
+import logging
 import gradio as gr
 import os
 os.environ['https_proxy'] = '127.0.0.1:27890'
@@ -10,6 +11,9 @@ from PIL import Image
 from playwright.async_api import async_playwright
 import json
 import random
+
+logger = logging.getLogger(__name__)
+
 loop = asyncio.get_event_loop()
 
 async def init_browser():
@@ -106,7 +110,7 @@ def gen_data(model, item):
             html = f.read()
         image = loop.run_until_complete(gen_shortcut(html))
     except Exception as e:
-        print(e)
+        logger.debug(e)
         image = None
     return model, {
         'html': html,
@@ -125,7 +129,7 @@ def pick_item(idx):
         item = benchmarks[bch_now]['data'][hash_list[item_idx]]
         return item['refer_image'], order_item(item), f'{item_idx+1}/{len(hash_list)}', ''
     
-    print(hash_list[item_idx])
+    logger.debug(hash_list[item_idx])
     
     item_idx = idx
     item = benchmarks[bch_now]['data'][hash_list[idx]]
@@ -190,7 +194,7 @@ def save_result(filename):
     global bch_now, benchmarks
     result = benchmarks[bch_now]['result']
     # count = dict(Counter(result.values()))
-    # print(bch_now, count)
+    # logger.debug(bch_now, count)
     with open(f'{bch_now}_{filename}.json','w') as f:
         json.dump(result, f, indent=2)
 

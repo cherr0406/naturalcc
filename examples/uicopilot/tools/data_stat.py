@@ -1,3 +1,4 @@
+import logging
 from bs4 import BeautifulSoup
 from collections import Counter
 import os
@@ -12,6 +13,8 @@ from transformers import GPT2TokenizerFast
 tokenizer = GPT2TokenizerFast.from_pretrained("openai-community/gpt2")
 import matplotlib.pyplot as plt
 from datasets import load_from_disk,concatenate_datasets
+
+logger = logging.getLogger(__name__)
 
 html5_tags = [
     "!DOCTYPE", "a", "abbr", "address", "area", "article", "aside", "audio", "b", "base", "bdi", "bdo", "blockquote",
@@ -179,7 +182,7 @@ def vision2ui():
             return items
         except:
             import traceback
-            print(f'stat error: {traceback.format_exc()}')
+            logger.debug(f'stat error: {traceback.format_exc()}')
             htmls=[html.strip() for html in items['text']]
             items['length'] = [8460]*len(htmls)
             items['total_tags'] = [175]*len(htmls)
@@ -275,7 +278,7 @@ if __name__ == "__main__":
 
     # indices_dict = dict(zip(percentiles, indices))
     # for k,v in indices_dict.items():
-    #     print(f"{k}th percentile: {all_filenames[v]}")
+    #     logger.debug(f"{k}th percentile: {all_filenames[v]}")
     #     print (f"Value: {all_counts[v]}")
     
     sorted_tag_frequency_dict = dict(sorted(tag_frequencies.items(), key=lambda item: item[1], reverse=True))

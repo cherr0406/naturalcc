@@ -1,3 +1,4 @@
+import logging
 from scripts.data_cc_pipeline.post_process import detect_lang
 from PIL import  Image
 from io import BytesIO
@@ -8,6 +9,7 @@ import re
 from transformers import GPT2TokenizerFast
 tokenizer = GPT2TokenizerFast.from_pretrained("openai-community/gpt2")
 
+logger = logging.getLogger(__name__)
 
 def split_html_css(text):
     html_content = re.sub(f'\s+', ' ', text)
@@ -39,7 +41,7 @@ def func(items):
         items["tokens"] = [ list(map(len,tokenizer(con,  max_length=10240, truncation=True)["input_ids"]))  for con in contents]        
         return items    
     except Exception as e:
-        print(e)
+        logger.debug(e)
         return None
     
 ds_path="/data02/starmage/datasets/cc/arrows_15_processed"

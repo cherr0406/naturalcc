@@ -1,3 +1,4 @@
+import logging
 import sys
 sys.path.append("/data02/users/lz/code/UICoder")
 import cv2
@@ -7,6 +8,9 @@ import requests
 import anthropic
 import os
 from PIL import Image
+
+logger = logging.getLogger(__name__)
+
 # 设置代理环境变量
 os.environ["HTTP_PROXY"] = "http://127.0.0.1:27890"
 os.environ["HTTPS_PROXY"] = "http://127.0.0.1:27890"
@@ -84,5 +88,5 @@ test_image = Image.new("RGB", (100, 100), color="blue")  # 创建一个蓝色测
 # text = "Turn this into a single html file using tailwind."
 text = "Turn the follow image into a single html file using tailwind."
 response = claude(prompt, test_image, text)
-print(response)
+logger.debug(response)
 

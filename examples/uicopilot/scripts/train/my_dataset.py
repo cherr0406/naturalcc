@@ -1,3 +1,4 @@
+import logging
 from torch.utils.data import Dataset as BaseDataset
 import datasets
 from datasets import load_dataset, concatenate_datasets, Dataset, Sequence, Value
@@ -17,6 +18,8 @@ from pathlib import Path
 from .processor import MultiProcessor
 import math
 import multiprocessing
+
+logger = logging.getLogger(__name__)
 
 def setup_proxy(unset=False):
     os.environ['https_proxy']='127.0.0.1:17890' if not unset else ''
@@ -172,7 +175,7 @@ class UICoderDataset(BaseDataset):
                 data_maker.add_task(self.make_data, (begin, end, i//step), cb)
 
         data_maker.shutdown()
-        print('concatenate maked data results...')
+        logger.debug('concatenate maked data results...')
         ds_list = list(filter(lambda x:x is not None, ds_list))
         ds_list2 = []
         for ds in ds_list:
@@ -215,7 +218,7 @@ class UICoderDataset(BaseDataset):
                 data_processor.add_task(self.process_data, (begin, end, i//step), cb)
 
         data_processor.shutdown()
-        print('concatenate processed data results...')
+        logger.debug('concatenate processed data results...')
         self.data_ = concatenate_datasets(ds_list)
 
     def process_one(self, item):
