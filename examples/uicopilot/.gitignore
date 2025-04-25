@@ -228,3 +228,4 @@ chrome-linux
 logs
 .playwright
 datasets
+.envrc
