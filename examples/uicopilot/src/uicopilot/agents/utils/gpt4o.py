@@ -1,10 +1,11 @@
-import cv2
-import io
 import base64
-import requests
-from .config import *
+import io
+import os
 
-def gpt4o(prompt, image, text):
+import requests
+
+
+def gpt4o(prompt, image, text, api_key: str | None = None, endpoint: str | None = None):
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
     img_str = buffered.getvalue()
@@ -37,7 +38,7 @@ def gpt4o(prompt, image, text):
 
     headers = {
         "Content-Type": "application/json",
-        "api-key": API_KEY,
+        "api-key": api_key if api_key else os.environ["API_KEY_OPENAI"],
     }
     payload = {
         # "model": "gpt-4",
@@ -48,7 +49,7 @@ def gpt4o(prompt, image, text):
         "max_tokens": 4096,
     }
 
-    response = requests.post(ENDPOINT, headers=headers, json=payload)
+    response = requests.post(endpoint if endpoint else os.environ["ENDPOINT_OPENAI"], headers=headers, json=payload)
 
     if response.status_code == 200:
         content = response.json()['choices'][0]['message']['content']

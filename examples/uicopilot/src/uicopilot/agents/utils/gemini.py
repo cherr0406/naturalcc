@@ -1,15 +1,12 @@
 import logging
-import sys
-sys.path.append("/data02/users/lz/code/UICoder")
 import io
 import base64
 from PIL import Image
-import google.generativeai as genai
+from google import genai
 import os
 
 logger = logging.getLogger(__name__)
 
-API_KEY_GEMINI = os.getenv("API_KEY_GEMINI")
 # 提取 HTML 内容的示例代码
 def extract_html_from_response(response):
     try:
@@ -24,17 +21,19 @@ def extract_html_from_response(response):
         logger.debug("Error extracting HTML:", e)
         return None
 
-genai.configure(api_key=API_KEY_GEMINI)
-def gemini(prompt, image, text):
+def gemini(prompt, image, text, model="gemini-2.0-flash", api_key: str | None = None):
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
     img_str = buffered.getvalue()
     image_base64 = base64.b64encode(img_str).decode('utf-8')
     # 创建生成模型
-    model = genai.GenerativeModel(model_name="gemini-1.5-pro-latest")
+    client = genai.Client(api_key=api_key if api_key else os.environ["API_KEY_GEMINI"])
     # 创建请求并获取响应
     try:
-        response = model.generate_content([prompt,image_base64,text])
+        response = client.models.generate_content(
+            model=model,
+            contents=[prompt,image_base64,text],
+        )
         html_content = extract_html_from_response(response)
         # return html_content
         return response
@@ -71,5 +70,5 @@ Do not include markdown "```" or "```html" at the start or end.
 test_image = Image.new("RGB", (100, 100), color="blue")  # 创建一个蓝色测试图像
 text = "Turn this into a single html file using tailwind."
 
-response = gemini(prompt, test_image, text)
+response = gemini(prompt, test_image, text, os.environ["API_KEY_GEMINI"])
 logger.debug(response)

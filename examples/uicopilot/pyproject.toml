@@ -7,7 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "accelerate>=1.6.0",
     "anthropic>=0.50.0",
-    "google-generativeai>=0.8.5",
+    "google-genai>=1.11.0",
     "opencv-python>=4.11.0.86",
     "pillow>=11.2.1",
     "torch>=2.7.0",
@@ -23,6 +23,7 @@ dev = [
     "mypy>=1.15.0",
     "ruff>=0.11.6",
     "setuptools>=79.0.1",
+    "types-requests>=2.32.0.20250328",
 ]
 
 [tool.mypy]
