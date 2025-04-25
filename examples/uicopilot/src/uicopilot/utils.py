@@ -1,5 +1,5 @@
 import re
-from typing import Dict
+from typing import Any
 
 import torch
 from tokenizers import AddedToken
@@ -7,7 +7,7 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 
 
-def move_to_device(data,device):
+def move_to_device(data: Any, device: torch.device | str) -> Any:
     if isinstance(data, (list,tuple)):
         return [move_to_device(x,device) for x in data]
     elif isinstance(data, dict):
@@ -17,7 +17,7 @@ def move_to_device(data,device):
     else:
         return data
     
-def BboxTree2Html(node,style=False,size=(1,1),precision=3):
+def BboxTree2Html(node: dict | str | None, style: bool = False, size: tuple = (1, 1), precision: int = 3) -> str:
     if isinstance(node, str):
         return node
     elif not node:
@@ -35,7 +35,7 @@ def BboxTree2Html(node,style=False,size=(1,1),precision=3):
         tree = f"<{dom_type} bbox=[{round(node['bbox'][0]/size[0],precision)},{round(node['bbox'][1]/size[1],precision)},{round(node['bbox'][2]/size[0],precision)},{round(node['bbox'][3]/size[1],precision)}]>{''.join(childDoms)}</{dom_type}>"
     return tree
 
-def BboxTree2StyleList(node, index='', skip_leaf=True):
+def BboxTree2StyleList(node: dict, index: str = '', skip_leaf: bool = True) -> list:
     if skip_leaf and not len(node['children']):
         return []
     bsList = [{
@@ -54,9 +54,9 @@ def BboxTree2StyleList(node, index='', skip_leaf=True):
     return bsList
 
 
-def Html2BboxTree(html, size=(1,1)):
-    root_node = None
-    index = None
+def Html2BboxTree(html: str, size: tuple = (1, 1)) -> dict[str, Any] | None:
+    root_node: dict[str, Any] | None = None
+    index: list[int] = []
     
     while len(html):
         html = html.replace('<s>','').strip()
@@ -90,6 +90,8 @@ def Html2BboxTree(html, size=(1,1)):
         elif match_eot:
             dom_type, = match_eot.groups()
             html = html[match_eot.end():]
+            if not root_node:
+                break
             target = root_node
             for i in index:
                 target = target['children'][i]
@@ -100,7 +102,7 @@ def Html2BboxTree(html, size=(1,1)):
             
     return root_node
 
-def smart_tokenizer_and_embedding_resize(model: PreTrainedModel, tokenizer: AutoTokenizer, special_tokens_dict: Dict):
+def smart_tokenizer_and_embedding_resize(model: PreTrainedModel, tokenizer: AutoTokenizer, special_tokens_dict: dict) -> None:
         num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
         model.resize_token_embeddings(len(tokenizer))
         
@@ -109,7 +111,7 @@ def smart_tokenizer_and_embedding_resize(model: PreTrainedModel, tokenizer: Auto
             input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
             input_embeddings[-num_new_tokens:] = input_embeddings_avg
 
-def add_special_tokens(model: PreTrainedModel, tokenizer: AutoTokenizer):
+def add_special_tokens(model: PreTrainedModel, tokenizer: AutoTokenizer) -> None:
     smart_tokenizer_and_embedding_resize(model,tokenizer,{
         'bos_token': AddedToken('<s>', rstrip=False, lstrip=False, single_word=False, normalized=True),
         'additional_special_tokens': [
@@ -119,5 +121,4 @@ def add_special_tokens(model: PreTrainedModel, tokenizer: AutoTokenizer):
             AddedToken('</css>', rstrip=False, lstrip=False, single_word=False, normalized=True),
         ]
     })
-
 

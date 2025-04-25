@@ -1,12 +1,20 @@
-from .utils.gpt4o import gpt4o
 import re
 
+from .utils.gpt4o import gpt4o
+
+
 class Agent:
-    def __init__(self, prompt):
+    def __init__(self, prompt, llm_model:str = "gpt4o", api_key:str|None=None, endpoint:str|None=None):
         self.prompt = prompt
+        if llm_model == "gpt4o":
+            self.llm_model = llm_model
+            self.api_key = api_key
+            self.endpoint = endpoint
+        else:
+            raise NotImplementedError("Unsupported LLM model. Please use 'gpt4o'.")
 
     def infer(self, image, text='', parse=True):
-        text = gpt4o(self.prompt, image, text)
+        text = gpt4o(self.prompt, image, text, api_key=self.api_key, endpoint=self.endpoint)
         return self.parser(text) if parse else text
     
     def parser(self, text):
@@ -38,7 +46,7 @@ class AgentSplit(Agent):
         return modules
 
 class AgentI2C(Agent):
-    def __init__(self):
+    def __init__(self, llm_model:str = "gpt4o", api_key:str|None=None, endpoint:str|None=None):
         super().__init__("""你是一个擅长于搭建网页的网页工程师。
 # CONTEXT #
 我想实现一个将网页实现图片转换为实现该网页效果代码的项目。目前交给你的工作是根据分割后的网页模块的名称和图片，生成对应的HTML代码。
@@ -64,7 +72,7 @@ Initialize
 In the next message, I will send you a webpage image, module name, the initial HTML DOM tree, and bbox information. Please generate the corresponding HTML code following the rules outlined above.""")
 
 class AgentOptimize(Agent):
-    def __init__(self):
+    def __init__(self, llm_model:str = "gpt4o", api_key:str|None=None, endpoint:str|None=None):
         super().__init__("""你是一个擅长于搭建网页的网页工程师。
 # CONTEXT #
 我想实现一个将网页实现图片转换为实现该网页效果代码的项目。目前交给你的工作是参考网页图片，把已经生成的网页代码进行调整和优化。
@@ -106,4 +114,4 @@ class AgentAssemble(Agent):
 # RESPONSE #
 给出能够实现整体功能的HTML网页代码。
 # Initialize #
-接下来的消息我会给你发送网页整体图片和模块名称，图片区域和对应的HTML代码，收到后请按照以上规则给出HTML代码""")    
+接下来的消息我会给你发送网页整体图片和模块名称，图片区域和对应的HTML代码，收到后请按照以上规则给出HTML代码""")
