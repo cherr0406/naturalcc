@@ -2,29 +2,31 @@ import logging
 from typing import Any
 
 import torch
+from PIL import Image
 from transformers.models.pix2struct import Pix2StructForConditionalGeneration, Pix2StructProcessor
+from transformers.models.t5 import T5Tokenizer, T5TokenizerFast
 
-from .agents import AgentI2C, AgentOptimize
+from .agents import AgentI2C, AgentOptimize, T_LLMModels
 from .utils import BboxTree2Html, BboxTree2StyleList, Html2BboxTree, add_special_tokens, move_to_device
 
 logger = logging.getLogger(__name__)
 
 
 class SimpleInference:
-    def __init__(self, llm_model: str, API_KEY: str, ENDPOINT: str | None = None):
+    def __init__(self, llm_model: T_LLMModels, API_KEY: str, ENDPOINT: str | None = None):
+        pretrained_model_name: str = "xcodemind/webcoder"
         self.device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
-        processor = Pix2StructProcessor.from_pretrained("xcodemind/webcoder")
-        self.processor: Pix2StructProcessor = processor[0] if isinstance(processor, tuple) else processor
-        self.tokenizer = self.processor.tokenizer  # type: ignore
+        processor_or_tuple = Pix2StructProcessor.from_pretrained(pretrained_model_name)
+        self.processor = processor_or_tuple[0] if isinstance(processor_or_tuple, tuple) else processor_or_tuple
+        self.tokenizer: T5Tokenizer | T5TokenizerFast = self.processor.tokenizer  # type: ignore
 
-        model_bbox: Pix2StructForConditionalGeneration = Pix2StructForConditionalGeneration.from_pretrained(
-            "xcodemind/webcoder",
+        self.model_bbox = Pix2StructForConditionalGeneration.from_pretrained(
+            pretrained_model_name,
             is_encoder_decoder=True,
             device_map=self.device,
             torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
         )
-        self.model_bbox: Pix2StructForConditionalGeneration = model_bbox[0] if isinstance(model_bbox, tuple) else model_bbox
         add_special_tokens(self.model_bbox, self.tokenizer)
 
         self.agent_i2c = AgentI2C(llm_model=llm_model, api_key=API_KEY, endpoint=ENDPOINT)
@@ -33,8 +35,9 @@ class SimpleInference:
     def infer_bbox(self, image: Any) -> str:
         self.model_bbox.eval()
         with torch.no_grad():
-            input = "<body bbox=["
-            decoder_input_ids = self.tokenizer.encode(input, return_tensors="pt", add_special_tokens=True)[..., :-1]
+            _input = "<body bbox=["
+            decoder_input_ids = torch.Tensor(self.tokenizer.encode(_input, return_tensors="pt", add_special_tokens=True))
+            decoder_input_ids = decoder_input_ids[..., :-1]
             encoding = self.processor(images=[image], text=[""], return_tensors="pt", images_kwargs={"max_patches": 1024})
             item = {
                 "decoder_input_ids": decoder_input_ids,
@@ -43,14 +46,14 @@ class SimpleInference:
             }
             item = move_to_device(item, self.device)
 
-            outputs: torch.Tensor = self.model_bbox.generate(**item, max_new_tokens=2560, eos_token_id=self.tokenizer.eos_token_id, do_sample=True)
+            outputs = self.model_bbox.generate(**item, max_new_tokens=2560, eos_token_id=self.tokenizer.eos_token_id, do_sample=True)
 
             prediction_html = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
 
         return prediction_html
 
-    def locateByIndex(self, bboxTree: dict, index: str) -> dict:
-        target: dict = bboxTree
+    def locateByIndex(self, bboxTree: dict[str, Any], index: str) -> dict:
+        target = bboxTree
         for i in list(filter(lambda x: x, index.split("-"))):
             target = target["children"][int(i)]
         return target
@@ -63,7 +66,7 @@ class SimpleInference:
         html = html.strip()
         return html
 
-    def pruning(self, node: dict, now_depth: int, max_depth: int, min_area: int) -> dict | None:
+    def pruning(self, node: dict[str, Any], now_depth: int, max_depth: int, min_area: int) -> dict[str, Any] | None:
         bbox: list = node["bbox"]
         area: int = abs((bbox[2] - bbox[0]) * (bbox[3] - bbox[1]))
         if area < min_area:
@@ -76,19 +79,22 @@ class SimpleInference:
             node["children"] = list(filter(lambda x: x, node["children"]))
         return node
 
-    def gen(self, image: Any, max_depth: int = 100, min_area: int = 100) -> tuple[str, str, list]:
-        imgs: list = []
+    def gen(self, image: Image.Image, max_depth: int = 100, min_area: int = 100) -> tuple[str, str, list[Image.Image]]:
+        imgs: list[Image.Image] = []
         # infer
         prediction_html = self.infer_bbox(image)
 
-        # draw bbox on image
-        pBbox = Html2BboxTree(prediction_html, size=image.size)
-
         # pruning
-        self.pruning(pBbox, 1, max_depth, min_area)
+        bboxTree = Html2BboxTree(prediction_html, size=image.size)
+        if bboxTree is None:
+            logger.error("bboxTree is None. Returning empty string, empty list")
+            return "", "", []
+        bboxTree = self.pruning(bboxTree, 1, max_depth, min_area)
+        if bboxTree is None:
+            logger.error("bboxTree is None after pruning. Returning empty string, empty list")
+            return "", "", []
 
         # iter leaf node to gen ctree by agent
-        bboxTree = Html2BboxTree(prediction_html, size=image.size)
         indexList: list = BboxTree2StyleList(bboxTree, skip_leaf=False)
         # only leaf filter
         indexList = list(filter(lambda x: not len(x["children"]), indexList))
@@ -123,7 +129,7 @@ class SimpleInference:
 if __name__ == "__main__":
     import os
 
-    from PIL import Image
+    logging.basicConfig(level=logging.DEBUG)
 
     # Set environment variables
     API_KEY = os.getenv("API_KEY") or ""
@@ -139,9 +145,9 @@ if __name__ == "__main__":
     image = Image.open("test.png")
 
     inference = SimpleInference(
-        llm_model="gpt-4o",  # "gpt-4"
+        llm_model="gpt-4o",
         API_KEY=API_KEY,
-        ENDPOINT=ENDPOINT,  # or None
+        ENDPOINT=ENDPOINT,
     )
     _, html, imgs = inference.gen(image)
     os.makedirs(output_dir, exist_ok=True)
@@ -149,6 +155,3 @@ if __name__ == "__main__":
         f.write(html)
     for idx, img in enumerate(imgs):
         img.save(f"{idx}.png")
-
-
-# TODO: Test this code from outer directory

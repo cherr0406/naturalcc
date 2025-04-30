@@ -1,17 +1,19 @@
 import re
+from typing import Literal
 
 from .utils.gpt4o import gpt4o
 
+T_LLMModels = Literal["gpt-4o", "claude", "gemini"]
 
 class Agent:
-    def __init__(self, prompt, llm_model:str = "gpt4o", api_key:str|None=None, endpoint:str|None=None):
+    def __init__(self, prompt, llm_model:T_LLMModels = "gpt-4o", api_key:str|None=None, endpoint:str|None=None):
         self.prompt = prompt
-        if llm_model == "gpt4o":
+        if llm_model == "gpt-4o":
             self.llm_model = llm_model
             self.api_key = api_key
             self.endpoint = endpoint
         else:
-            raise NotImplementedError("Unsupported LLM model. Please use 'gpt4o'.")
+            raise NotImplementedError("Unsupported LLM model. Please use 'gpt-4o'.")
 
     def infer(self, image, text='', parse=True):
         text = gpt4o(self.prompt, image, text, api_key=self.api_key, endpoint=self.endpoint)
@@ -46,7 +48,7 @@ class AgentSplit(Agent):
         return modules
 
 class AgentI2C(Agent):
-    def __init__(self, llm_model:str = "gpt4o", api_key:str|None=None, endpoint:str|None=None):
+    def __init__(self, llm_model:str = "gpt-4o", api_key:str|None=None, endpoint:str|None=None):
         super().__init__("""你是一个擅长于搭建网页的网页工程师。
 # CONTEXT #
 我想实现一个将网页实现图片转换为实现该网页效果代码的项目。目前交给你的工作是根据分割后的网页模块的名称和图片，生成对应的HTML代码。
@@ -72,7 +74,7 @@ Initialize
 In the next message, I will send you a webpage image, module name, the initial HTML DOM tree, and bbox information. Please generate the corresponding HTML code following the rules outlined above.""")
 
 class AgentOptimize(Agent):
-    def __init__(self, llm_model:str = "gpt4o", api_key:str|None=None, endpoint:str|None=None):
+    def __init__(self, llm_model:str = "gpt-4o", api_key:str|None=None, endpoint:str|None=None):
         super().__init__("""你是一个擅长于搭建网页的网页工程师。
 # CONTEXT #
 我想实现一个将网页实现图片转换为实现该网页效果代码的项目。目前交给你的工作是参考网页图片，把已经生成的网页代码进行调整和优化。

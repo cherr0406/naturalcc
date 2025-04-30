@@ -3,8 +3,9 @@ from typing import Any
 
 import torch
 from tokenizers import AddedToken
-from transformers.modeling_utils import PreTrainedModel
-from transformers.models.auto.tokenization_auto import AutoTokenizer
+from transformers.models.pix2struct import Pix2StructForConditionalGeneration
+from transformers.tokenization_utils import PreTrainedTokenizer
+from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
 
 
 def move_to_device(data: Any, device: torch.device | str) -> Any:
@@ -17,7 +18,7 @@ def move_to_device(data: Any, device: torch.device | str) -> Any:
     else:
         return data
     
-def BboxTree2Html(node: dict | str | None, style: bool = False, size: tuple = (1, 1), precision: int = 3) -> str:
+def BboxTree2Html(node: dict[str, Any] | str | None, style: bool = False, size: tuple = (1, 1), precision: int = 3) -> str:
     if isinstance(node, str):
         return node
     elif not node:
@@ -35,7 +36,7 @@ def BboxTree2Html(node: dict | str | None, style: bool = False, size: tuple = (1
         tree = f"<{dom_type} bbox=[{round(node['bbox'][0]/size[0],precision)},{round(node['bbox'][1]/size[1],precision)},{round(node['bbox'][2]/size[0],precision)},{round(node['bbox'][3]/size[1],precision)}]>{''.join(childDoms)}</{dom_type}>"
     return tree
 
-def BboxTree2StyleList(node: dict, index: str = '', skip_leaf: bool = True) -> list:
+def BboxTree2StyleList(node: dict[str, Any], index: str = '', skip_leaf: bool = True) -> list:
     if skip_leaf and not len(node['children']):
         return []
     bsList = [{
@@ -54,7 +55,7 @@ def BboxTree2StyleList(node: dict, index: str = '', skip_leaf: bool = True) -> l
     return bsList
 
 
-def Html2BboxTree(html: str, size: tuple = (1, 1)) -> dict[str, Any] | None:
+def Html2BboxTree(html: str, size: tuple[int, int] = (1, 1)) -> dict[str, Any] | None:
     root_node: dict[str, Any] | None = None
     index: list[int] = []
     
@@ -65,12 +66,19 @@ def Html2BboxTree(html: str, size: tuple = (1, 1)) -> dict[str, Any] | None:
         match_eot = re.search(r'^</([a-zA-Z0-9]+)\s*>',html)
         
         if match_bot:
-            dom_type,bbox_str = match_bot.groups()
-            bbox = list(map(lambda x: float(x),bbox_str.split('[')[1].split(']')[0].split(',')))
-            bbox[0] = int(bbox[0]*size[0])
-            bbox[1] = int(bbox[1]*size[1])
-            bbox[2] = int(bbox[2]*size[0])
-            bbox[3] = int(bbox[3]*size[1])
+            dom_type, bbox_str = match_bot.groups()
+            try:
+                # Validate and parse bbox_str
+                bbox = list(map(lambda x: float(x), bbox_str.split('[')[1].split(']')[0].split(',')))
+                bbox[0] = int(bbox[0] * size[0])
+                bbox[1] = int(bbox[1] * size[1])
+                bbox[2] = int(bbox[2] * size[0])
+                bbox[3] = int(bbox[3] * size[1])
+            except (IndexError, ValueError):
+                # Skip invalid bbox_str
+                html = html[match_bot.end():]
+                continue
+            
             html = html[match_bot.end():]
             node = {
                 'type': dom_type,
@@ -102,7 +110,7 @@ def Html2BboxTree(html: str, size: tuple = (1, 1)) -> dict[str, Any] | None:
             
     return root_node
 
-def smart_tokenizer_and_embedding_resize(model: PreTrainedModel, tokenizer: AutoTokenizer, special_tokens_dict: dict) -> None:
+def smart_tokenizer_and_embedding_resize(model: Pix2StructForConditionalGeneration, tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast, special_tokens_dict: dict) -> None:
         num_new_tokens = tokenizer.add_special_tokens(special_tokens_dict)
         model.resize_token_embeddings(len(tokenizer))
         
@@ -111,7 +119,7 @@ def smart_tokenizer_and_embedding_resize(model: PreTrainedModel, tokenizer: Auto
             input_embeddings_avg = input_embeddings[:-num_new_tokens].mean(dim=0, keepdim=True)
             input_embeddings[-num_new_tokens:] = input_embeddings_avg
 
-def add_special_tokens(model: PreTrainedModel, tokenizer: AutoTokenizer) -> None:
+def add_special_tokens(model: Pix2StructForConditionalGeneration, tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast) -> None:
     smart_tokenizer_and_embedding_resize(model,tokenizer,{
         'bos_token': AddedToken('<s>', rstrip=False, lstrip=False, single_word=False, normalized=True),
         'additional_special_tokens': [
