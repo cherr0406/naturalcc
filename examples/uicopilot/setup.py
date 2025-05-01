@@ -6,4 +6,5 @@ setup(
     description="Unofficial pip-installable version of UICopilot",
     packages=find_packages("src"),
     package_dir={"": "src"},
+    include_package_data=True,
 )
