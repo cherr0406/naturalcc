@@ -52,3 +52,13 @@ indent-style = "space"
 
 [tool.ruff.lint.mccabe]
 max-complexity = 5
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+uicopilot = ["py.typed"]
