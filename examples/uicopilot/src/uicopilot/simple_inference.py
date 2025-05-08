@@ -6,14 +6,14 @@ from PIL import Image
 from transformers.models.pix2struct import Pix2StructForConditionalGeneration, Pix2StructProcessor
 from transformers.models.t5 import T5Tokenizer, T5TokenizerFast
 
-from .agents import AgentI2C, AgentOptimize, T_LLMModels
+from .agents import AgentI2C, AgentOptimize
 from .utils import BboxTree2Html, BboxTree2StyleList, Html2BboxTree, add_special_tokens, move_to_device
 
 logger = logging.getLogger(__name__)
 
 
 class SimpleInference:
-    def __init__(self, llm_model: T_LLMModels, API_KEY: str, ENDPOINT: str | None = None):
+    def __init__(self, agent_i2c: AgentI2C, agent_optimize: AgentOptimize):
         pretrained_model_name: str = "xcodemind/webcoder"
         self.device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -29,8 +29,8 @@ class SimpleInference:
         )
         add_special_tokens(self.model_bbox, self.tokenizer)
 
-        self.agent_i2c = AgentI2C(llm_model=llm_model, api_key=API_KEY, endpoint=ENDPOINT)
-        self.agent_optimize = AgentOptimize(llm_model=llm_model, api_key=API_KEY, endpoint=ENDPOINT)
+        self.agent_i2c = agent_i2c
+        self.agent_optimize = agent_optimize
 
     def infer_bbox(self, image: Any) -> str:
         self.model_bbox.eval()
@@ -145,9 +145,8 @@ if __name__ == "__main__":
     image = Image.open("test.png")
 
     inference = SimpleInference(
-        llm_model="gpt-4o",
-        API_KEY=API_KEY,
-        ENDPOINT=ENDPOINT,
+        AgentI2C(llm_model="gpt-4o", api_key=API_KEY, endpoint=ENDPOINT),
+        AgentOptimize(llm_model="gpt-4o", api_key=API_KEY, endpoint=ENDPOINT),
     )
     _, html, imgs = inference.gen(image)
     os.makedirs(output_dir, exist_ok=True)
