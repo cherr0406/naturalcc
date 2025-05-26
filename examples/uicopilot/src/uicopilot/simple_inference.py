@@ -14,15 +14,14 @@ logger = logging.getLogger(__name__)
 
 class SimpleInference:
     def __init__(self, agent_i2c: AgentI2C, agent_optimize: AgentOptimize):
-        pretrained_model_name: str = "xcodemind/uicopilot_structure"
         self.device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
-        processor_or_tuple = Pix2StructProcessor.from_pretrained(pretrained_model_name)
+        processor_or_tuple = Pix2StructProcessor.from_pretrained("xcodemind/webcoder")
         self.processor = processor_or_tuple[0] if isinstance(processor_or_tuple, tuple) else processor_or_tuple
         self.tokenizer: T5Tokenizer | T5TokenizerFast = self.processor.tokenizer  # type: ignore
 
         self.model_bbox = Pix2StructForConditionalGeneration.from_pretrained(
-            pretrained_model_name,
+            "xcodemind/uicopilot_structure",
             is_encoder_decoder=True,
             device_map=self.device,
             torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
