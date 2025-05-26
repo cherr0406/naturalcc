@@ -9,7 +9,7 @@ from agents import *
 device = 'cuda'
 
 processor = AutoProcessor.from_pretrained("xcodemind/webcoder")
-model_bbox = Pix2StructForConditionalGeneration.from_pretrained("xcodemind/uicopilot_structure ", is_encoder_decoder=True, device_map=device, torch_dtype=torch.float16)
+model_bbox = Pix2StructForConditionalGeneration.from_pretrained("xcodemind/uicopilot_structure", is_encoder_decoder=True, device_map=device, torch_dtype=torch.float16)
 add_special_tokens(model_bbox,processor.tokenizer)
 
 agent_i2c = AgentI2C()
@@ -65,6 +65,7 @@ def gen(image, max_depth=100, min_area=100):
     imgs = []
     # infer
     prediction_html = infer_bbox(image)
+    print(f'prediction_html:\n{prediction_html}')
 
     # draw bbox on image
     pBbox = Html2BboxTree(prediction_html, size=image.size)
@@ -113,3 +114,6 @@ def __main__():
         f.write(html)
     for idx, img in enumerate(imgs):
         img.save(f'{idx}.png')
+
+if __name__ == '__main__':
+    __main__()
