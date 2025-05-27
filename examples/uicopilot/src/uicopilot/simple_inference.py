@@ -13,10 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 class SimpleInference:
-    def __init__(self, agent_i2c: AgentI2C, agent_optimize: AgentOptimize):
+    def __init__(
+        self,
+        agent_i2c: AgentI2C,
+        agent_optimize: AgentOptimize,
+        processor_args: dict[str, Any] | None = None,
+        model_args: dict[str, Any] | None = None,
+    ):
         self.device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
-        processor_or_tuple = Pix2StructProcessor.from_pretrained("xcodemind/webcoder")
+        processor_or_tuple = Pix2StructProcessor.from_pretrained("xcodemind/webcoder", **(processor_args or {}))
         self.processor = processor_or_tuple[0] if isinstance(processor_or_tuple, tuple) else processor_or_tuple
         self.tokenizer: T5Tokenizer | T5TokenizerFast = self.processor.tokenizer  # type: ignore
 
@@ -25,6 +31,7 @@ class SimpleInference:
             is_encoder_decoder=True,
             device_map=self.device,
             torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
+            **(model_args or {}),
         )
         add_special_tokens(self.model_bbox, self.tokenizer)
 
